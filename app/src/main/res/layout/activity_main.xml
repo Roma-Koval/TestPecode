@@ -5,13 +5,51 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    android:background="@color/app_background"
+    tools:context=".ui.MainActivity">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/fragmentContainerView"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:name="test.pecode.FirstFragment"
-        tools:layout="@layout/fragment_first" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/create_notification"
+        android:layout_width="170dp"
+        android:layout_height="170dp"
+        android:layout_marginTop="200dp"
+        android:background="@drawable/circle_button"
+        android:text="@string/button_notification"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        app:backgroundTint="#33BABF"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/delete_button"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_marginStart="45dp"
+        android:layout_marginBottom="14dp"
+        android:src="@drawable/delete_button"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/create_button"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_marginEnd="45dp"
+        android:layout_marginBottom="14dp"
+        android:src="@drawable/create_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
