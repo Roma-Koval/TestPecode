@@ -16,16 +16,23 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.Builder
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.view.isVisible
-import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import test.pecode.R
 import test.pecode.databinding.ActivityMainBinding
+import test.pecode.list.ViewPagerAdapter
+import test.pecode.list.numOfFragments
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
     private lateinit var viewPager: ViewPager2
+
+    private val viewPagerAdapter = ViewPagerAdapter(
+        numOfFragments,
+        supportFragmentManager,
+        lifecycle
+    )
 
     private val sharedPref by lazy {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -35,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            sentNotification()
+            sendNotification()
         } else {
             return@registerForActivityResult
         }
@@ -48,68 +55,87 @@ class MainActivity : AppCompatActivity() {
 
         setUpViewPager()
         setUpSavedTotalFragments()
-        createFragment()
-        deleteFragment()
-        createNotification()
+        setUpCreateButton()
+        setUpDeleteButton()
+        setUpNotificationButton()
         createNotificationChannel()
         openFragmentWhenClickOnNotification(intent)
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent != null) {
+            openFragmentWhenClickOnNotification(intent)
+        }
+    }
+
+    override fun onBackPressed() {
+        if (viewPager.currentItem == 0) {
+            super.onBackPressed()
+        } else {
+            viewPager.currentItem = viewPager.currentItem - 1
+        }
+    }
+
     private fun setUpViewPager() {
         viewPager = binding.pager
-
-        viewPager.adapter = object : FragmentStateAdapter(this) {
-            override fun getItemCount() = numOfFragments
-
-            override fun createFragment(position: Int) = PageFragment.newInstance(position + 1)
-        }
+        viewPager.adapter = viewPagerAdapter
     }
 
     private fun setUpSavedTotalFragments() {
         val fragmentCount = sharedPref.getInt(KEY_FRAGMENT_COUNT, 1)
         if (fragmentCount > numOfFragments) {
             numOfFragments = fragmentCount
+            viewPagerAdapter.notifyCountChanged(numOfFragments)
             updateDeleteButtonVisibility()
         }
     }
 
-    private fun deleteFragment() = with(binding) {
+    private fun setUpDeleteButton() = with(binding) {
         deleteButton.setOnClickListener {
-            with(NotificationManagerCompat.from(this@MainActivity)) {
-                cancel(numOfFragments)
-            }
-
-            numOfFragments--
-
-            updateDeleteButtonVisibility()
-
-            (viewPager.adapter as FragmentStateAdapter).notifyDataSetChanged()
-            viewPager.setCurrentItem(numOfFragments - 1, false)
-
-            saveFragmentCount(numOfFragments)
+            deleteFragment()
         }
     }
 
-    private fun createFragment() = with(binding) {
-        createButton.setOnClickListener {
-            numOfFragments++
-
-             updateDeleteButtonVisibility()
-
-            (viewPager.adapter as FragmentStateAdapter).notifyDataSetChanged()
-            viewPager.setCurrentItem(numOfFragments - 1, true)
-
-            saveFragmentCount(numOfFragments)
+    private fun deleteFragment() {
+        with(NotificationManagerCompat.from(this@MainActivity)) {
+            cancel(numOfFragments)
         }
+
+        numOfFragments--
+
+        updateDeleteButtonVisibility()
+
+        viewPagerAdapter.notifyCountChanged(numOfFragments)
+        viewPager.setCurrentItem(numOfFragments - 1, false)
+
+        saveFragmentCount(numOfFragments)
+    }
+
+    private fun setUpCreateButton() = with(binding) {
+        createButton.setOnClickListener {
+            createFragment()
+        }
+    }
+
+    private fun createFragment() {
+        numOfFragments++
+
+        updateDeleteButtonVisibility()
+
+        viewPagerAdapter.notifyCountChanged(numOfFragments)
+        viewPager.setCurrentItem(numOfFragments - 1, true)
+
+        saveFragmentCount(numOfFragments)
     }
 
     private fun updateDeleteButtonVisibility() = with(binding) {
         deleteButton.isVisible = numOfFragments > 1
     }
 
-    private fun createNotification() = with(binding) {
+    private fun setUpNotificationButton() = with(binding) {
         createNotification.setOnClickListener {
-            sentNotification()
+            sendNotification()
         }
     }
 
@@ -120,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sentNotification() {
+    private fun sendNotification() {
         val idNotification = viewPager.currentItem + 1
         val currentItem = viewPager.currentItem
 
@@ -135,7 +161,7 @@ class MainActivity : AppCompatActivity() {
 
         val builder = Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Chat heads active")
+            .setContentTitle(getString(R.string.title_notification))
             .setContentText("Notification $idNotification")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
@@ -152,13 +178,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        if (intent != null) {
-            openFragmentWhenClickOnNotification(intent)
-        }
-    }
-
     private fun openFragmentWhenClickOnNotification(intent: Intent) {
         val page = intent.extras?.getInt(KEY_PAGE) ?: 0
         viewPager.setCurrentItem(page, false)
@@ -167,8 +186,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "General chanel"
-            val descriptionText = "All notifications"
+            val name = getString(R.string.name_chanel)
+            val descriptionText = getString(R.string.description_chanel)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val chanel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
@@ -176,14 +195,6 @@ class MainActivity : AppCompatActivity() {
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(chanel)
-        }
-    }
-
-    override fun onBackPressed() {
-        if (viewPager.currentItem == 0) {
-            super.onBackPressed()
-        } else {
-            viewPager.currentItem = viewPager.currentItem - 1
         }
     }
 
